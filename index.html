@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordDuel — 2-Player Hangman</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050709;
+            --surface: #0c0f16;
+            --surface2: #121720;
+            --surface3: #1a2030;
+            --border: #1e2840;
+            --border-bright: #2a3550;
+            --text: #6b7a99;
+            --text-mid: #9aaac4;
+            --text-bright: #e2e8f8;
+            --accent: #7c5cfc;
+            --accent-dim: rgba(124, 92, 252, 0.12);
+            --accent-glow: rgba(124, 92, 252, 0.4);
+            --accent2: #fc5cf3;
+            --accent2-dim: rgba(252, 92, 243, 0.1);
+            --green: #4cff9f;
+            --green-dim: rgba(76, 255, 159, 0.1);
+            --green-glow: rgba(76, 255, 159, 0.35);
+            --red: #ff4f6d;
+            --red-dim: rgba(255, 79, 109, 0.12);
+            --red-glow: rgba(255, 79, 109, 0.3);
+            --gold: #ffc94a;
+            --gold-dim: rgba(255, 201, 74, 0.12);
+            --gold-glow: rgba(255, 201, 74, 0.4);
+            --hangman-color: #e2e8f8;
+            --radius: 14px;
+            --radius-sm: 8px;
+            --radius-xs: 5px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text-bright);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 16px 40px;
+            background-image:
+                radial-gradient(ellipse 70% 40% at 20% 10%, rgba(124,92,252,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 30% at 80% 80%, rgba(252,92,243,0.05) 0%, transparent 60%);
+        }
+
+        /* ─── Brand ─────────────────────────── */
+        .brand {
+            text-align: center;
+            margin: 28px 0 24px;
+        }
+        .brand-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2.8rem, 8vw, 4.2rem);
+            letter-spacing: 0.06em;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 20px rgba(124,92,252,0.5));
+        }
+        .brand-sub {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.25em;
+            color: var(--text);
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+
+        /* ─── Card ──────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 520px;
+            overflow: hidden;
+            box-shadow: 0 0 0 1px rgba(124,92,252,0.05), 0 24px 64px rgba(0,0,0,0.5);
+        }
+
+        /* ─── Panels ────────────────────────── */
+        .panel { display: none; padding: 26px 26px 22px; }
+        .panel.active { display: block; animation: fadeUp 0.3s ease; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .panel-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border), transparent);
+        }
+
+        /* ─── Lobby ─────────────────────────── */
+        .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .field label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text);
+            letter-spacing: 0.08em;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 11px 14px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-bright);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+        input.error { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-dim); }
+        input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .lobby-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 6px;
+        }
+        @media (max-width: 380px) { .lobby-grid { grid-template-columns: 1fr; } }
+
+        .action-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color 0.2s;
+        }
+        .action-card:hover { border-color: var(--border-bright); }
+        .action-card-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.58rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        /* ─── Room Badge ─────────────────────── */
+        .room-badge {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .room-badge-id {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.12em;
+            text-shadow: 0 0 14px var(--accent-glow);
+        }
+        .room-badge-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.58rem;
+            color: var(--text);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .copy-btn {
+            background: var(--accent-dim);
+            border: 1px solid rgba(124,92,252,0.2);
+            color: var(--accent);
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.68rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover { background: rgba(124,92,252,0.2); }
+        .copy-btn.copied { color: var(--text); border-color: var(--border); background: transparent; }
+
+        /* ─── Buttons ────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 11px 20px;
+            border-radius: var(--radius-sm);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #5c3de0);
+            color: #fff;
+            box-shadow: 0 0 18px var(--accent-glow);
+        }
+        .btn-primary:hover:not(:disabled) { box-shadow: 0 0 30px var(--accent-glow); transform: translateY(-1px); }
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-bright);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+        .btn-green {
+            background: linear-gradient(135deg, var(--green), #30c878);
+            color: #030a06;
+            box-shadow: 0 0 16px var(--green-glow);
+        }
+        .btn-green:hover:not(:disabled) { box-shadow: 0 0 28px var(--green-glow); transform: translateY(-1px); }
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold), #e0a020);
+            color: #0a0600;
+            box-shadow: 0 0 16px var(--gold-glow);
+        }
+        .btn-gold:hover:not(:disabled) { box-shadow: 0 0 28px var(--gold-glow); transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+        .btn-full { width: 100%; }
+
+        /* ─── Players Row ────────────────────── */
+        .players-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        .player-chip {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+        }
+        .player-chip.active-player {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-dim);
+        }
+        .player-chip-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-bright);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .player-chip-sub {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.55rem;
+            color: var(--text);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+        .vs-badge {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.1rem;
+            color: var(--text);
+            letter-spacing: 0.06em;
+        }
+
+        /* ─── Hangman SVG Scaffold ───────────── */
+        .hangman-wrap {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .hangman-svg { transition: all 0.3s; }
+        .hm-part {
+            stroke: var(--hangman-color);
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            fill: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .hm-part.visible { opacity: 1; }
+        .hm-scaffold {
+            stroke: var(--border-bright);
+            stroke-width: 2;
+            stroke-linecap: round;
+            fill: none;
+        }
+        /* Wrong guess red flash */
+        .hm-part.flash {
+            stroke: var(--red);
+            animation: flashRed 0.5s ease forwards;
+        }
+        @keyframes flashRed {
+            0%   { stroke: var(--red); opacity: 1; }
+            100% { stroke: var(--hangman-color); opacity: 1; }
+        }
+
+        /* ─── Word Display ───────────────────── */
+        .word-display {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 18px;
+            min-height: 54px;
+            align-items: flex-end;
+        }
+        .letter-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 28px;
+        }
+        .letter-char {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-bright);
+            min-height: 28px;
+            line-height: 1;
+            transition: all 0.25s ease;
+        }
+        .letter-char.reveal {
+            color: var(--green);
+            text-shadow: 0 0 10px var(--green-glow);
+            animation: popIn 0.3s ease;
+        }
+        .letter-char.wrong-reveal {
+            color: var(--red);
+            text-shadow: 0 0 10px var(--red-glow);
+        }
+        .letter-line {
+            width: 100%;
+            height: 2px;
+            background: var(--border-bright);
+            border-radius: 2px;
+        }
+        .letter-line.revealed { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+
+        @keyframes popIn {
+            0%   { transform: scale(0.5) translateY(10px); opacity: 0; }
+            70%  { transform: scale(1.15) translateY(-2px); }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        /* ─── Category Badge ─────────────────── */
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(124,92,252,0.25);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--accent);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin: 0 auto 16px;
+            display: flex;
+        }
+
+        /* ─── Keyboard ───────────────────────── */
+        .keyboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+        .key-btn {
+            width: 34px;
+            height: 38px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            color: var(--text-bright);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .key-btn:hover:not(:disabled):not(.used) { background: var(--surface3); border-color: var(--accent); color: var(--accent); }
+        .key-btn.correct {
+            background: var(--green-dim);
+            border-color: var(--green);
+            color: var(--green);
+            cursor: not-allowed;
+        }
+        .key-btn.wrong {
+            background: var(--red-dim);
+            border-color: var(--red);
+            color: var(--red);
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .key-btn:disabled { cursor: not-allowed; }
+
+        /* ─── Stats Row ──────────────────────── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .stat-chip {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            text-align: center;
+        }
+        .stat-val {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-bright);
+            line-height: 1;
+        }
+        .stat-val.danger { color: var(--red); text-shadow: 0 0 8px var(--red-glow); }
+        .stat-val.safe { color: var(--green); text-shadow: 0 0 8px var(--green-glow); }
+        .stat-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.55rem;
+            color: var(--text);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        /* ─── Wrong Guesses ──────────────────── */
+        .wrong-letters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 14px;
+            min-height: 28px;
+        }
+        .wrong-chip {
+            background: var(--red-dim);
+            border: 1px solid rgba(255,79,109,0.3);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--red);
+            animation: fadeUp 0.2s ease;
+        }
+
+        /* ─── Turn Banner ────────────────────── */
+        .turn-banner {
+            text-align: center;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            transition: all 0.3s;
+        }
+        .turn-banner.my-turn {
+            background: var(--accent-dim);
+            border: 1px solid rgba(124,92,252,0.3);
+            color: var(--accent);
+        }
+        .turn-banner.their-turn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        /* ─── Setup Word Input ───────────────── */
+        .setup-hint {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        .setup-hint span { color: var(--accent); }
+        .char-count {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text);
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        /* ─── Error Msg ──────────────────────── */
+        .error-msg {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--red);
+            min-height: 18px;
+            margin-top: 4px;
+        }
+        .error-msg:empty { opacity: 0; }
+
+        /* ─── Scores Board ───────────────────── */
+        .score-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .score-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            text-align: center;
+        }
+        .score-card.winner { border-color: var(--gold); box-shadow: 0 0 12px var(--gold-dim); }
+        .score-num {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.2rem;
+            color: var(--text-bright);
+            line-height: 1;
+        }
+        .score-name {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-mid);
+            margin-top: 4px;
+        }
+
+        /* ─── Status Bar ─────────────────────── */
+        .status-bar {
+            border-top: 1px solid var(--border);
+            padding: 11px 26px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text);
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 6px; height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px var(--accent);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* ─── Modal ──────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5,7,9,0.9);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 36px 30px;
+            text-align: center;
+            max-width: 380px;
+            width: 100%;
+            animation: fadeUp 0.35s ease;
+        }
+        .modal-box.win { border-color: var(--gold); box-shadow: 0 0 60px var(--gold-glow); }
+        .modal-box.lose { border-color: var(--red); box-shadow: 0 0 40px var(--red-glow); }
+        .modal-box.draw { border-color: var(--accent); box-shadow: 0 0 40px var(--accent-glow); }
+        .modal-icon { font-size: 3.5rem; line-height: 1; margin-bottom: 14px; }
+        .modal-result {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+        .modal-result.win  { color: var(--gold); text-shadow: 0 0 14px var(--gold-glow); }
+        .modal-result.lose { color: var(--red);  text-shadow: 0 0 14px var(--red-glow); }
+        .modal-result.draw { color: var(--accent); }
+        .modal-reveal {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            margin: 14px 0 20px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text);
+            line-height: 1.7;
+        }
+        .modal-reveal .word { color: var(--text-bright); font-weight: 700; font-size: 0.9rem; letter-spacing: 0.05em; }
+        .modal-scores {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .modal-score-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+        }
+        .modal-score-card.leading { border-color: var(--gold); }
+        .modal-score-num {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            color: var(--text-bright);
+        }
+        .modal-score-name { font-size: 0.72rem; color: var(--text); margin-top: 2px; }
+
+        /* ─── Reconnect Banner ───────────────── */
+        .reconnect-banner {
+            display: none;
+            background: rgba(255,201,74,0.07);
+            border: 1px solid rgba(255,201,74,0.25);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--gold);
+            text-align: center;
+            line-height: 1.7;
+        }
+        .reconnect-banner.visible { display: block; animation: fadeUp 0.3s ease; }
+        .reconnect-banner span { font-size: 0.95rem; font-weight: 700; display: block; margin-top: 4px; }
+
+        /* ─── Divider ────────────────────────── */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 14px 0;
+        }
+        .divider-line { flex: 1; height: 1px; background: var(--border); }
+        .divider-text {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.58rem;
+            color: var(--text);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* ─── Setup Lock Screen ──────────────── */
+        .setup-locked {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            text-align: center;
+            margin-top: 14px;
+        }
+        .setup-locked-icon { font-size: 2rem; margin-bottom: 8px; }
+        .setup-locked-text {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .setup-locked-text span { color: var(--green); }
+
+        /* ─── Roles Labels ───────────────────── */
+        .role-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .role-badge.setter { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(124,92,252,0.3); }
+        .role-badge.guesser { background: var(--green-dim); color: var(--green); border: 1px solid rgba(76,255,159,0.3); }
+    </style>
+</head>
+<body>
+
+    <div class="brand">
+        <div class="brand-title">Word Duel</div>
+        <div class="brand-sub">2 Player · Hangman · Live</div>
+    </div>
+
+    <div class="card">
+
+        <!-- ── LOBBY ─────────────────────────────── -->
+        <div id="panel-lobby" class="panel active">
+            <div class="panel-title">Enter Arena</div>
+
+            <div class="field">
+                <label>Your Alias</label>
+                <input type="text" id="playerName" placeholder="e.g. Cipher" maxlength="15" autocomplete="off">
+            </div>
+
+            <div class="lobby-grid">
+                <div class="action-card">
+                    <div class="action-card-label">Create Room</div>
+                    <button class="btn btn-primary btn-full" onclick="createRoom()">+ New Room</button>
+                </div>
+                <div class="action-card">
+                    <div class="action-card-label">Join Room</div>
+                    <input type="text" id="roomIdInput" placeholder="Room ID" maxlength="6" autocomplete="off"
+                        style="text-transform:uppercase;letter-spacing:0.1em;">
+                    <button class="btn btn-ghost btn-full" onclick="joinRoom()">→ Join</button>
+                </div>
+            </div>
+
+            <div id="roomBadgeWrap" style="display:none; margin-top:4px;">
+                <div class="divider">
+                    <div class="divider-line"></div>
+                    <div class="divider-text">Share Room ID</div>
+                    <div class="divider-line"></div>
+                </div>
+                <div class="room-badge">
+                    <div>
+                        <div class="room-badge-label">Room ID</div>
+                        <div class="room-badge-id" id="roomBadgeId">------</div>
+                    </div>
+                    <button class="copy-btn" id="copyBtn" onclick="copyRoomId()">Copy</button>
+                </div>
+                <p style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--text);text-align:center;margin-top:10px;">
+                    Waiting for opponent to join…
+                </p>
+            </div>
+        </div>
+
+        <!-- ── SETUP (Word Setter) ───────────────── -->
+        <div id="panel-setup" class="panel">
+            <div class="panel-title">Set The Word</div>
+
+            <div class="players-row">
+                <div class="player-chip" id="setupP1Chip">
+                    <div class="player-chip-name" id="setupP1Name">—</div>
+                    <div class="player-chip-sub" id="setupP1Role">—</div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="player-chip" id="setupP2Chip">
+                    <div class="player-chip-name" id="setupP2Name">—</div>
+                    <div class="player-chip-sub" id="setupP2Role">—</div>
+                </div>
+            </div>
+
+            <div id="isSetterUI">
+                <div class="setup-hint">
+                    You're the <span>Word Setter</span> this round. Choose a secret word for your opponent to guess.
+                    Letters only, 3–14 characters.
+                </div>
+                <div class="field">
+                    <label>Secret Word</label>
+                    <input type="text" id="wordInput" placeholder="e.g. LABYRINTH" maxlength="14" autocomplete="off"
+                        style="text-transform:uppercase;letter-spacing:0.12em;">
+                    <div class="char-count" id="wordCharCount">0 / 14</div>
+                    <div class="error-msg" id="wordError"></div>
+                </div>
+                <div class="field">
+                    <label>Category (Optional)</label>
+                    <input type="text" id="categoryInput" placeholder="e.g. Movies, Science, Places…" maxlength="20" autocomplete="off">
+                </div>
+                <button class="btn btn-primary btn-full" onclick="setWord()">Lock Word 🔒</button>
+            </div>
+
+            <div id="isGuesserUI" style="display:none;">
+                <div class="setup-locked">
+                    <div class="setup-locked-icon">⏳</div>
+                    <div class="setup-locked-text">
+                        Opponent is picking a secret word…<br>
+                        <span>Get ready to guess!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── GAME ──────────────────────────────── -->
+        <div id="panel-game" class="panel">
+            <div class="panel-title">Duel</div>
+
+            <div class="players-row">
+                <div class="player-chip" id="gameP1Chip">
+                    <div class="player-chip-name" id="gameP1Name">—</div>
+                    <div class="player-chip-sub" id="gameP1Role">Setter</div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="player-chip" id="gameP2Chip">
+                    <div class="player-chip-name" id="gameP2Name">—</div>
+                    <div class="player-chip-sub" id="gameP2Role">Guesser</div>
+                </div>
+            </div>
+
+            <div class="reconnect-banner" id="reconnectBanner">
+                <span id="reconnectMsg">Opponent disconnected</span>
+                <span id="reconnectCountdown"></span>
+            </div>
+
+            <div class="category-badge" id="categoryBadge" style="display:none;">
+                📂 <span id="categoryText">Category</span>
+            </div>
+
+            <!-- Hangman SVG -->
+            <div class="hangman-wrap">
+                <svg class="hangman-svg" width="200" height="200" viewBox="0 0 200 200">
+                    <!-- Scaffold (always visible) -->
+                    <line class="hm-scaffold" x1="20" y1="190" x2="100" y2="190"/>
+                    <line class="hm-scaffold" x1="60" y1="190" x2="60" y2="20"/>
+                    <line class="hm-scaffold" x1="60" y1="20"  x2="130" y2="20"/>
+                    <line class="hm-scaffold" x1="130" y1="20" x2="130" y2="40"/>
+                    <!-- Body parts (revealed on wrong guesses) -->
+                    <circle class="hm-part" id="hm-head" cx="130" cy="55" r="15"/>
+                    <line   class="hm-part" id="hm-body" x1="130" y1="70" x2="130" y2="115"/>
+                    <line   class="hm-part" id="hm-arm-l" x1="130" y1="80" x2="105" y2="100"/>
+                    <line   class="hm-part" id="hm-arm-r" x1="130" y1="80" x2="155" y2="100"/>
+                    <line   class="hm-part" id="hm-leg-l" x1="130" y1="115" x2="108" y2="145"/>
+                    <line   class="hm-part" id="hm-leg-r" x1="130" y1="115" x2="152" y2="145"/>
+                </svg>
+            </div>
+
+            <!-- Word Blanks -->
+            <div class="word-display" id="wordDisplay"></div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-chip">
+                    <div class="stat-val" id="wrongCount">0</div>
+                    <div class="stat-label">Wrong</div>
+                </div>
+                <div class="stat-chip">
+                    <div class="stat-val" id="livesLeft">6</div>
+                    <div class="stat-label">Lives Left</div>
+                </div>
+                <div class="stat-chip">
+                    <div class="stat-val" id="correctCount">0</div>
+                    <div class="stat-label">Correct</div>
+                </div>
+            </div>
+
+            <!-- Turn Banner -->
+            <div class="turn-banner their-turn" id="turnBanner">Waiting…</div>
+
+            <!-- Keyboard -->
+            <div class="keyboard" id="keyboard"></div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-dot"></div>
+            <span id="statusBar">Connecting…</span>
+        </div>
+    </div>
+
+    <!-- ── ROUND END MODAL ─────────────────────── -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal-box" id="modalBox">
+            <div class="modal-icon" id="modalIcon">🏆</div>
+            <div class="modal-result" id="modalResult">You Win!</div>
+            <div class="modal-reveal" id="modalReveal">
+                The word was <span class="word" id="modalWord">—</span>
+            </div>
+            <div class="modal-scores" id="modalScores">
+                <div class="modal-score-card" id="mScore1">
+                    <div class="modal-score-num" id="mScoreNum1">0</div>
+                    <div class="modal-score-name" id="mScoreName1">P1</div>
+                </div>
+                <div class="modal-score-card" id="mScore2">
+                    <div class="modal-score-num" id="mScoreNum2">0</div>
+                    <div class="modal-score-name" id="mScoreName2">P2</div>
+                </div>
+            </div>
+            <button class="btn btn-gold btn-full" onclick="nextRound()">Next Round ➜</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+    const socket = io();
+
+    // ── Session ────────────────────────────────
+    const SESSION_KEY = 'wordduel_session';
+    function saveSession(d) { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(d)); } catch(e){} }
+    function loadSession() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch(e){ return null; } }
+    function clearSession() { try { sessionStorage.removeItem(SESSION_KEY); } catch(e){} }
+
+    // ── State ──────────────────────────────────
+    let myName = null;
+    let currentRoomId = null;
+    let iAmSetter = false;
+    let isMyTurn = false;
+    let graceCountdownInterval = null;
+    let scores = { p1: 0, p2: 0 };
+    let p1Name = '—', p2Name = '—';
+    let lastWord = '';
+
+    // Hangman parts in order
+    const HM_PARTS = ['hm-head','hm-body','hm-arm-l','hm-arm-r','hm-leg-l','hm-leg-r'];
+
+    // ── DOM ────────────────────────────────────
+    const statusBar          = document.getElementById('statusBar');
+    const resultModal        = document.getElementById('resultModal');
+    const reconnectBanner    = document.getElementById('reconnectBanner');
+    const reconnectMsg       = document.getElementById('reconnectMsg');
+    const reconnectCountdown = document.getElementById('reconnectCountdown');
+
+    // ── Helpers ────────────────────────────────
+    function switchPanel(name) {
+        ['lobby','setup','game'].forEach(n => {
+            document.getElementById(`panel-${n}`).classList.toggle('active', n === name);
+        });
+    }
+
+    function buildKeyboard() {
+        const kb = document.getElementById('keyboard');
+        kb.innerHTML = '';
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+            const btn = document.createElement('button');
+            btn.className = 'key-btn';
+            btn.id = `key-${letter}`;
+            btn.textContent = letter;
+            btn.onclick = () => guessLetter(letter);
+            kb.appendChild(btn);
+        });
+    }
+
+    function resetKeyboard() {
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l => {
+            const btn = document.getElementById(`key-${l}`);
+            if (btn) { btn.className = 'key-btn'; btn.disabled = false; }
+        });
+    }
+
+    function setKeyboardEnabled(enabled) {
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l => {
+            const btn = document.getElementById(`key-${l}`);
+            if (btn && !btn.classList.contains('correct') && !btn.classList.contains('wrong')) {
+                btn.disabled = !enabled;
+            }
+        });
+    }
+
+    function renderWordDisplay(pattern) {
+        // pattern: array of chars, '_' for hidden
+        const wd = document.getElementById('wordDisplay');
+        wd.innerHTML = '';
+        pattern.forEach(char => {
+            const slot = document.createElement('div');
+            slot.className = 'letter-slot';
+            const lc = document.createElement('div');
+            lc.className = 'letter-char' + (char !== '_' ? ' reveal' : '');
+            lc.textContent = char !== '_' ? char : '';
+            const ll = document.createElement('div');
+            ll.className = 'letter-line' + (char !== '_' ? ' revealed' : '');
+            slot.appendChild(lc);
+            slot.appendChild(ll);
+            wd.appendChild(slot);
+        });
+    }
+
+    function updateHangman(wrongCount) {
+        HM_PARTS.forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (i < wrongCount) el.classList.add('visible');
+            else el.classList.remove('visible');
+        });
+    }
+
+    function flashLastHangmanPart(wrongCount) {
+        if (wrongCount < 1 || wrongCount > 6) return;
+        const el = document.getElementById(HM_PARTS[wrongCount - 1]);
+        el.classList.add('flash');
+        setTimeout(() => el.classList.remove('flash'), 600);
+    }
+
+    function updateStats(wrong, correct) {
+        const lives = 6 - wrong;
+        document.getElementById('wrongCount').textContent = wrong;
+        document.getElementById('livesLeft').textContent = lives;
+        document.getElementById('correctCount').textContent = correct;
+        const lv = document.getElementById('livesLeft');
+        lv.className = 'stat-val' + (lives <= 2 ? ' danger' : lives >= 5 ? ' safe' : '');
+    }
+
+    function showReconnectBanner(msg, sec) {
+        reconnectMsg.textContent = msg;
+        reconnectBanner.classList.add('visible');
+        let t = sec;
+        reconnectCountdown.textContent = `${t}s remaining`;
+        clearInterval(graceCountdownInterval);
+        graceCountdownInterval = setInterval(() => {
+            t--;
+            if (t <= 0) { clearInterval(graceCountdownInterval); reconnectCountdown.textContent = 'Grace expired.'; }
+            else reconnectCountdown.textContent = `${t}s remaining`;
+        }, 1000);
+    }
+
+    function hideReconnectBanner() {
+        reconnectBanner.classList.remove('visible');
+        reconnectCountdown.textContent = '';
+        clearInterval(graceCountdownInterval);
+    }
+
+    function updatePlayerChips(setter, guesser) {
+        // Setup panel
+        document.getElementById('setupP1Name').textContent = p1Name;
+        document.getElementById('setupP2Name').textContent = p2Name;
+        document.getElementById('setupP1Role').textContent = setter === p1Name ? 'Setter' : 'Guesser';
+        document.getElementById('setupP2Role').textContent = setter === p2Name ? 'Setter' : 'Guesser';
+        // Game panel
+        document.getElementById('gameP1Name').textContent = p1Name;
+        document.getElementById('gameP2Name').textContent = p2Name;
+        document.getElementById('gameP1Role').textContent = setter === p1Name ? 'Setter' : 'Guesser';
+        document.getElementById('gameP2Role').textContent = setter === p2Name ? 'Setter' : 'Guesser';
+    }
+
+    // ── Socket Events ──────────────────────────
+    socket.on('connect', () => {
+        const session = loadSession();
+        if (session?.roomId && session?.playerName) {
+            statusBar.textContent = 'Reconnecting…';
+            socket.emit('rejoinRoom', { roomId: session.roomId, playerName: session.playerName });
+        } else {
+            statusBar.textContent = 'Connected. Ready to play.';
+        }
+    });
+
+    socket.on('updateStatus', msg => { statusBar.textContent = msg; });
+
+    socket.on('roomCreated', ({ roomId }) => {
+        currentRoomId = roomId;
+        myName = document.getElementById('playerName').value.trim();
+        saveSession({ roomId, playerName: myName });
+        document.getElementById('roomBadgeId').textContent = roomId;
+        document.getElementById('roomBadgeWrap').style.display = 'block';
+        document.getElementById('playerName').disabled = true;
+    });
+
+    socket.on('playersInfo', ({ player1, player2 }) => {
+        p1Name = player1; p2Name = player2;
+    });
+
+    socket.on('setupRound', ({ setter, guesser, round }) => {
+        iAmSetter = (setter === myName);
+        updatePlayerChips(setter, guesser);
+
+        document.getElementById('isSetterUI').style.display = iAmSetter ? 'block' : 'none';
+        document.getElementById('isGuesserUI').style.display = iAmSetter ? 'none' : 'block';
+        document.getElementById('wordInput').value = '';
+        document.getElementById('categoryInput').value = '';
+        document.getElementById('wordCharCount').textContent = '0 / 14';
+        document.getElementById('wordError').textContent = '';
+
+        switchPanel('setup');
+    });
+
+    socket.on('gameStart', ({ pattern, category, setter }) => {
+        updatePlayerChips(setter, setter === p1Name ? p2Name : p1Name);
+        resultModal.classList.remove('open');
+        switchPanel('game');
+        buildKeyboard();
+        resetKeyboard();
+        renderWordDisplay(pattern);
+        updateHangman(0);
+        updateStats(0, 0);
+
+        const catBadge = document.getElementById('categoryBadge');
+        if (category) {
+            catBadge.style.display = 'flex';
+            document.getElementById('categoryText').textContent = category;
+        } else {
+            catBadge.style.display = 'none';
+        }
+        hideReconnectBanner();
+    });
+
+    socket.on('turnUpdate', ({ guesserSocketId }) => {
+        const myTurn = socket.id === guesserSocketId;
+        isMyTurn = myTurn && !iAmSetter;
+        setKeyboardEnabled(isMyTurn);
+
+        const tb = document.getElementById('turnBanner');
+        if (iAmSetter) {
+            tb.textContent = '👁 You set the word — Watch them guess!';
+            tb.className = 'turn-banner their-turn';
+        } else if (isMyTurn) {
+            tb.textContent = '🔥 Your Turn — Pick a letter!';
+            tb.className = 'turn-banner my-turn';
+        } else {
+            tb.textContent = '⏳ Opponent\'s turn…';
+            tb.className = 'turn-banner their-turn';
+        }
+    });
+
+    socket.on('letterResult', ({ letter, correct, pattern, wrongCount, correctCount, flashPart }) => {
+        const btn = document.getElementById(`key-${letter}`);
+        if (btn) { btn.className = `key-btn ${correct ? 'correct' : 'wrong'}`; btn.disabled = true; }
+        renderWordDisplay(pattern);
+        updateHangman(wrongCount);
+        if (!correct && flashPart) flashLastHangmanPart(wrongCount);
+        updateStats(wrongCount, correctCount);
+    });
+
+    socket.on('roundOver', ({ winner, word, outcome, newScores, setterName }) => {
+        lastWord = word;
+        scores = newScores;
+
+        const modalBox = document.getElementById('modalBox');
+        const modalResult = document.getElementById('modalResult');
+        const modalIcon = document.getElementById('modalIcon');
+
+        let resultClass, resultText, iconText;
+
+        if (outcome === 'guesser_wins') {
+            if (!iAmSetter) { resultClass = 'win'; resultText = 'You Cracked It!'; iconText = '🏆'; }
+            else { resultClass = 'lose'; resultText = `${winner} Wins!`; iconText = '💀'; }
+        } else if (outcome === 'setter_wins') {
+            if (iAmSetter) { resultClass = 'win'; resultText = 'Word Survived!'; iconText = '🎭'; }
+            else { resultClass = 'lose'; resultText = 'Hanged…'; iconText = '☠️'; }
+        } else {
+            resultClass = 'draw'; resultText = 'Draw!'; iconText = '🤝';
+        }
+
+        modalBox.className = `modal-box ${resultClass}`;
+        modalResult.className = `modal-result ${resultClass}`;
+        modalResult.textContent = resultText;
+        modalIcon.textContent = iconText;
+
+        document.getElementById('modalWord').textContent = word;
+
+        document.getElementById('mScoreName1').textContent = p1Name;
+        document.getElementById('mScoreName2').textContent = p2Name;
+        document.getElementById('mScoreNum1').textContent = scores.p1;
+        document.getElementById('mScoreNum2').textContent = scores.p2;
+
+        const lead1 = scores.p1 > scores.p2;
+        const lead2 = scores.p2 > scores.p1;
+        document.getElementById('mScore1').className = 'modal-score-card' + (lead1 ? ' leading' : '');
+        document.getElementById('mScore2').className = 'modal-score-card' + (lead2 ? ' leading' : '');
+
+        // Reveal full word (show all letters)
+        const fullPattern = word.split('');
+        renderWordDisplay(fullPattern);
+        setKeyboardEnabled(false);
+        resultModal.classList.add('open');
+    });
+
+    socket.on('playerDisconnected', ({ playerName, graceSeconds }) => {
+        showReconnectBanner(`⚠️ ${playerName} disconnected…`, graceSeconds);
+        setKeyboardEnabled(false);
+    });
+
+    socket.on('clearBoard', () => {
+        resultModal.classList.remove('open');
+        hideReconnectBanner();
+        clearSession();
+    });
+
+    socket.on('gameStateUpdate', state => {
+        if (state === 'waiting') {
+            switchPanel('lobby');
+            document.getElementById('roomBadgeWrap').style.display = 'none';
+            document.getElementById('playerName').disabled = false;
+            clearSession();
+        }
+    });
+
+    socket.on('rejoinSuccess', ({ gameState, player1, player2, isSetter }) => {
+        statusBar.textContent = 'Reconnected!';
+        hideReconnectBanner();
+        p1Name = player1 || p1Name;
+        p2Name = player2 || p2Name;
+        iAmSetter = isSetter;
+        if (gameState === 'waiting') switchPanel('lobby');
+        if (gameState === 'setup')   switchPanel('setup');
+        if (gameState === 'playing') { switchPanel('game'); buildKeyboard(); }
+    });
+
+    socket.on('errorMsg', msg => { statusBar.textContent = `⚠ ${msg}`; });
+
+    // ── Actions ────────────────────────────────
+    function createRoom() {
+        const name = document.getElementById('playerName').value.trim();
+        if (!name) { statusBar.textContent = '⚠ Enter your alias first.'; return; }
+        myName = name;
+        socket.emit('createRoom', name);
+    }
+
+    function joinRoom() {
+        const name = document.getElementById('playerName').value.trim();
+        const roomId = document.getElementById('roomIdInput').value.trim().toUpperCase();
+        if (!name) { statusBar.textContent = '⚠ Enter your alias first.'; return; }
+        if (!roomId || roomId.length !== 6) { statusBar.textContent = '⚠ Enter a valid 6-character Room ID.'; return; }
+        myName = name;
+        currentRoomId = roomId;
+        saveSession({ roomId, playerName: name });
+        socket.emit('joinRoom', { name, roomId });
+    }
+
+    function setWord() {
+        const word = document.getElementById('wordInput').value.trim().toUpperCase();
+        const category = document.getElementById('categoryInput').value.trim();
+        const errEl = document.getElementById('wordError');
+        const inp = document.getElementById('wordInput');
+
+        if (!word || !/^[A-Z]{3,14}$/.test(word)) {
+            errEl.textContent = 'Letters only, 3–14 characters.';
+            inp.classList.add('error');
+            setTimeout(() => { errEl.textContent = ''; inp.classList.remove('error'); }, 3000);
+            return;
+        }
+        errEl.textContent = '';
+        inp.classList.remove('error');
+        socket.emit('setWord', { word, category });
+        document.getElementById('isSetterUI').innerHTML = `
+            <div class="setup-locked">
+                <div class="setup-locked-icon">🔒</div>
+                <div class="setup-locked-text">Word locked! <span>${word.length} letters</span><br>Waiting for opponent to start guessing…</div>
+            </div>`;
+    }
+
+    function guessLetter(letter) {
+        if (!isMyTurn) return;
+        socket.emit('guessLetter', letter);
+    }
+
+    function nextRound() {
+        socket.emit('nextRound');
+    }
+
+    function copyRoomId() {
+        const btn = document.getElementById('copyBtn');
+        navigator.clipboard.writeText(currentRoomId).then(() => {
+            btn.textContent = 'Copied!'; btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+        });
+    }
+
+    // ── Word input char counter ────────────────
+    document.getElementById('wordInput').addEventListener('input', function() {
+        this.value = this.value.toUpperCase().replace(/[^A-Z]/g,'');
+        document.getElementById('wordCharCount').textContent = `${this.value.length} / 14`;
+    });
+
+    document.getElementById('roomIdInput').addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+
+    document.getElementById('roomIdInput').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+    document.getElementById('playerName').addEventListener('keydown', e => { if (e.key === 'Enter') createRoom(); });
+    </script>
+</body>
+</html>
