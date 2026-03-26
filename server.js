@@ -18,7 +18,7 @@ const MAX_WRONG = 6;
 const MAX_ROUNDS = 6;
 
 // ── Room Store ───────────────────────────────
-// gameState: 'waiting' | 'setup' | 'playing' | 'round_over'
+// gameState: 'waiting' | 'setup' | 'playing' | 'round_over' | 'game_over'
 const rooms = {};
 const gracePending = {};
 
@@ -40,6 +40,8 @@ function createRoom() {
         wrongCount: 0,
         correctCount: 0,
         pausedForDisconnect: false,
+        // Next round readiness — tracks which player socket IDs have confirmed
+        nextRoundReady: new Set(),
     };
 }
 
@@ -102,6 +104,16 @@ io.on('connection', (socket) => {
                 flashPart: false
             });
             emitTurnUpdate(roomId);
+        }
+
+        // Re-sync round_over state — tell rejoining player if they already clicked ready
+        if (room.gameState === 'round_over') {
+            const alreadyReady = room.nextRoundReady.has(socket.id) || room.nextRoundReady.has(oldId);
+            socket.emit('nextRoundReadyCount', {
+                count: room.nextRoundReady.size,
+                total: 2,
+                youReady: alreadyReady,
+            });
         }
     });
 
@@ -205,7 +217,36 @@ io.on('connection', (socket) => {
         } else if (hanged) {
             endRound(roomId, 'setter_wins');
         }
-        // else continue — same guesser's turn (setter doesn't get turns in classic hangman)
+    });
+
+    // ── Next Round (both must confirm) ─────────
+    socket.on('nextRound', () => {
+        const roomId = socket.roomId;
+        const room = rooms[roomId];
+        if (!room || room.gameState !== 'round_over') return;
+
+        // Ignore if this player already clicked
+        if (room.nextRoundReady.has(socket.id)) return;
+
+        room.nextRoundReady.add(socket.id);
+        const count = room.nextRoundReady.size;
+        const total = room.players.length;
+
+        console.log(`Room ${roomId}: nextRound confirmed ${count}/${total}`);
+
+        // Broadcast updated ready count to both players
+        io.to(roomId).emit('nextRoundReadyCount', { count, total, youReady: false });
+        // Tell the clicking player their own button is now locked
+        socket.emit('nextRoundReadyCount', { count, total, youReady: true });
+
+        // Both confirmed — advance the round
+        if (count >= total) {
+            room.nextRoundReady.clear();
+            room.round++;
+            // Swap setter/guesser each round
+            room.setterIndex = room.setterIndex === 0 ? 1 : 0;
+            startSetupPhase(roomId);
+        }
     });
 
     // ── Reset Game (Play Again) ─────────────────
@@ -214,7 +255,6 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room || room.gameState !== 'game_over') return;
 
-        // Reset room state for a fresh game
         room.round = 1;
         room.totalRoundsPlayed = 0;
         room.setterIndex = 0;
@@ -225,28 +265,12 @@ io.on('connection', (socket) => {
         room.wrongCount = 0;
         room.correctCount = 0;
         room.pausedForDisconnect = false;
+        room.nextRoundReady.clear();
         room.players.forEach(p => { p.score = 0; });
 
         io.to(roomId).emit('clearBoard');
         io.to(roomId).emit('gameStateUpdate', { state: 'waiting', reason: 'play_again' });
         io.to(roomId).emit('updateStatus', 'Starting fresh! Waiting for both players to ready up…');
-    });
-
-    // ── Next Round ─────────────────────────────
-    socket.on('nextRound', () => {
-        const roomId = socket.roomId;
-        const room = rooms[roomId];
-        if (!room || room.gameState !== 'round_over') return;
-
-        if (room.totalRoundsPlayed >= MAX_ROUNDS) {
-            // Game is already over — ignore stray clicks
-            return;
-        }
-
-        room.round++;
-        // Swap setter/guesser
-        room.setterIndex = room.setterIndex === 0 ? 1 : 0;
-        startSetupPhase(roomId);
     });
 
     // ── Disconnect ──────────────────────────────
@@ -279,6 +303,7 @@ io.on('connection', (socket) => {
                     } else {
                         room.gameState = 'waiting';
                         room.pausedForDisconnect = false;
+                        room.nextRoundReady.clear();
                         io.to(roomId).emit('clearBoard');
                         io.to(roomId).emit('gameStateUpdate', { state: 'waiting', reason: 'disconnect' });
                         io.to(roomId).emit('updateStatus', `${player.name} didn't return. Waiting for new player…`);
@@ -290,6 +315,7 @@ io.on('connection', (socket) => {
             if (room.players.length === 0) { delete rooms[roomId]; }
             else {
                 room.gameState = 'waiting';
+                room.nextRoundReady.clear();
                 io.to(roomId).emit('clearBoard');
                 io.to(roomId).emit('gameStateUpdate', { state: 'waiting', reason: 'disconnect' });
                 io.to(roomId).emit('updateStatus', 'Opponent left. Waiting for new player…');
@@ -319,6 +345,7 @@ function startSetupPhase(roomId) {
     room.wrongCount = 0;
     room.correctCount = 0;
     room.pausedForDisconnect = false;
+    room.nextRoundReady.clear();
 
     const setter = getSetter(room);
     const guesser = getGuesser(room);
@@ -331,7 +358,7 @@ function startSetupPhase(roomId) {
         setter: setter.name,
         guesser: guesser.name,
         round: room.round,
-        roundNumber: room.totalRoundsPlayed, // rounds completed so far
+        roundNumber: room.totalRoundsPlayed,
         maxRounds: MAX_ROUNDS,
     });
     io.to(roomId).emit('updateStatus', `Round ${room.round}: ${setter.name} is picking a word…`);
@@ -342,6 +369,7 @@ function endRound(roomId, outcome) {
     if (!room) return;
     room.gameState = 'round_over';
     room.totalRoundsPlayed++;
+    room.nextRoundReady.clear();
 
     const setter = getSetter(room);
     const guesser = getGuesser(room);
@@ -370,11 +398,9 @@ function endRound(roomId, outcome) {
     });
 
     if (isLastRound) {
-        // Determine overall game winner
         let gameWinner = null;
         if (room.players[0].score > room.players[1].score) gameWinner = room.players[0].name;
         else if (room.players[1].score > room.players[0].score) gameWinner = room.players[1].name;
-        // else draw
 
         io.to(roomId).emit('gameOver', {
             gameWinner,
