@@ -909,6 +909,7 @@
                 </div>
             </div>
             <button class="btn btn-gold btn-full" id="nextRoundBtn" onclick="nextRound()">Next Round ➜</button>
+            <div id="nextRoundWaiting" style="display:none;font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--text);margin-top:10px;">⏳ Waiting for opponent… <span id="nextRoundCount"></span></div>
             <button class="btn btn-primary btn-full" id="playAgainBtn" style="display:none;margin-top:8px;" onclick="playAgain()">Play Again 🔄</button>
         </div>
     </div>
@@ -1081,10 +1082,14 @@
     });
 
     socket.on('setupRound', ({ setter, guesser, round, roundNumber, maxRounds }) => {
-        // FIX #1: Close the round-end modal before switching to setup panel.
-        // Without this, the modal stays open on top of the setup panel after
-        // clicking "Next Round", making the game appear frozen.
+        // Close modal and reset Next Round button state
         resultModal.classList.remove('open');
+        const nrBtn = document.getElementById('nextRoundBtn');
+        nrBtn.disabled = false;
+        nrBtn.textContent = 'Next Round ➜';
+        nrBtn.style.display = 'block';
+        document.getElementById('nextRoundWaiting').style.display = 'none';
+        document.getElementById('nextRoundCount').textContent = '';
 
         iAmSetter = (setter === myName);
         updatePlayerChips(setter, guesser);
@@ -1355,8 +1360,25 @@
     }
 
     function nextRound() {
+        const btn = document.getElementById('nextRoundBtn');
+        btn.disabled = true;
+        btn.textContent = '✓ Ready!';
+        document.getElementById('nextRoundWaiting').style.display = 'block';
+        document.getElementById('nextRoundCount').textContent = '(1/2)';
         socket.emit('nextRound');
     }
+
+    socket.on('nextRoundReadyCount', ({ count, total, youReady }) => {
+        const btn = document.getElementById('nextRoundBtn');
+        const waiting = document.getElementById('nextRoundWaiting');
+        document.getElementById('nextRoundCount').textContent = `(${count}/${total})`;
+        if (youReady) {
+            btn.disabled = true;
+            btn.textContent = '✓ Ready!';
+            waiting.style.display = 'block';
+        }
+        // When both ready, server emits setupRound which closes modal & resets button
+    });
 
     function playAgain() {
         socket.emit('resetGame');
