@@ -1069,7 +1069,8 @@
     socket.on('roomCreated', ({ roomId }) => {
         currentRoomId = roomId;
         myName = document.getElementById('playerName').value.trim();
-        saveSession({ roomId, playerName: myName });  // ← was missing for creator
+        // FIX #2: Save session for creator too (was missing, causing creator to lose session on refresh)
+        saveSession({ roomId, playerName: myName });
         document.getElementById('roomBadgeId').textContent = roomId;
         document.getElementById('roomBadgeWrap').style.display = 'block';
         document.getElementById('playerName').disabled = true;
@@ -1080,6 +1081,11 @@
     });
 
     socket.on('setupRound', ({ setter, guesser, round, roundNumber, maxRounds }) => {
+        // FIX #1: Close the round-end modal before switching to setup panel.
+        // Without this, the modal stays open on top of the setup panel after
+        // clicking "Next Round", making the game appear frozen.
+        resultModal.classList.remove('open');
+
         iAmSetter = (setter === myName);
         updatePlayerChips(setter, guesser);
 
