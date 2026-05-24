@@ -95,7 +95,7 @@
 
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         .panel-title {
@@ -268,6 +268,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             padding: 10px;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
         .player-chip.active-player {
             border-color: var(--accent);
@@ -318,7 +319,6 @@
             stroke-linecap: round;
             fill: none;
         }
-        /* Wrong guess red flash */
         .hm-part.flash {
             stroke: var(--red);
             animation: flashRed 0.5s ease forwards;
@@ -358,10 +358,6 @@
             text-shadow: 0 0 10px var(--green-glow);
             animation: popIn 0.3s ease;
         }
-        .letter-char.wrong-reveal {
-            color: var(--red);
-            text-shadow: 0 0 10px var(--red-glow);
-        }
         .letter-line {
             width: 100%;
             height: 2px;
@@ -391,7 +387,6 @@
             letter-spacing: 0.1em;
             text-transform: uppercase;
             margin: 0 auto 16px;
-            display: flex;
         }
 
         /* ─── Keyboard ───────────────────────── */
@@ -417,8 +412,20 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
-        .key-btn:hover:not(:disabled):not(.used) { background: var(--surface3); border-color: var(--accent); color: var(--accent); }
+        .key-btn:hover:not(:disabled):not(.correct):not(.wrong) {
+            background: var(--surface3);
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+        /* Physical key flash highlight */
+        .key-btn.key-active:not(.correct):not(.wrong) {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
         .key-btn.correct {
             background: var(--green-dim);
             border-color: var(--green);
@@ -433,6 +440,27 @@
             cursor: not-allowed;
         }
         .key-btn:disabled { cursor: not-allowed; }
+
+        /* Physical keyboard hint pill */
+        .keyboard-hint {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--text);
+            text-align: center;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+            opacity: 0.7;
+        }
+        .keyboard-hint kbd {
+            display: inline-block;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.58rem;
+            color: var(--text-mid);
+        }
 
         /* ─── Stats Row ──────────────────────── */
         .stats-row {
@@ -453,9 +481,10 @@
             font-size: 1.5rem;
             color: var(--text-bright);
             line-height: 1;
+            transition: color 0.3s;
         }
         .stat-val.danger { color: var(--red); text-shadow: 0 0 8px var(--red-glow); }
-        .stat-val.safe { color: var(--green); text-shadow: 0 0 8px var(--green-glow); }
+        .stat-val.safe   { color: var(--green); text-shadow: 0 0 8px var(--green-glow); }
         .stat-label {
             font-family: 'Space Mono', monospace;
             font-size: 0.55rem;
@@ -463,26 +492,6 @@
             letter-spacing: 0.1em;
             text-transform: uppercase;
             margin-top: 3px;
-        }
-
-        /* ─── Wrong Guesses ──────────────────── */
-        .wrong-letters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            justify-content: center;
-            margin-bottom: 14px;
-            min-height: 28px;
-        }
-        .wrong-chip {
-            background: var(--red-dim);
-            border: 1px solid rgba(255,79,109,0.3);
-            border-radius: 4px;
-            padding: 2px 8px;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.78rem;
-            color: var(--red);
-            animation: fadeUp 0.2s ease;
         }
 
         /* ─── Turn Banner ────────────────────── */
@@ -533,57 +542,6 @@
             min-height: 18px;
             margin-top: 4px;
         }
-        .error-msg:empty { opacity: 0; }
-
-        /* ─── Scores Board ───────────────────── */
-        .score-board {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 18px;
-        }
-        .score-card {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 14px;
-            text-align: center;
-        }
-        .score-card.winner { border-color: var(--gold); box-shadow: 0 0 12px var(--gold-dim); }
-        .score-num {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 2.2rem;
-            color: var(--text-bright);
-            line-height: 1;
-        }
-        .score-name {
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--text-mid);
-            margin-top: 4px;
-        }
-
-        /* ─── Status Bar ─────────────────────── */
-        .status-bar {
-            border-top: 1px solid var(--border);
-            padding: 11px 26px;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.65rem;
-            color: var(--text);
-            letter-spacing: 0.03em;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .status-dot {
-            width: 6px; height: 6px;
-            background: var(--accent);
-            border-radius: 50%;
-            flex-shrink: 0;
-            box-shadow: 0 0 6px var(--accent);
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
         /* ─── Modal ──────────────────────────── */
         .modal-overlay {
@@ -608,8 +566,8 @@
             width: 100%;
             animation: fadeUp 0.35s ease;
         }
-        .modal-box.win { border-color: var(--gold); box-shadow: 0 0 60px var(--gold-glow); }
-        .modal-box.lose { border-color: var(--red); box-shadow: 0 0 40px var(--red-glow); }
+        .modal-box.win  { border-color: var(--gold);   box-shadow: 0 0 60px var(--gold-glow);   }
+        .modal-box.lose { border-color: var(--red);    box-shadow: 0 0 40px var(--red-glow);    }
         .modal-box.draw { border-color: var(--accent); box-shadow: 0 0 40px var(--accent-glow); }
         .modal-icon { font-size: 3.5rem; line-height: 1; margin-bottom: 14px; }
         .modal-result {
@@ -618,8 +576,8 @@
             letter-spacing: 0.05em;
             margin-bottom: 6px;
         }
-        .modal-result.win  { color: var(--gold); text-shadow: 0 0 14px var(--gold-glow); }
-        .modal-result.lose { color: var(--red);  text-shadow: 0 0 14px var(--red-glow); }
+        .modal-result.win  { color: var(--gold);   text-shadow: 0 0 14px var(--gold-glow);  }
+        .modal-result.lose { color: var(--red);    text-shadow: 0 0 14px var(--red-glow);   }
         .modal-result.draw { color: var(--accent); }
         .modal-reveal {
             background: var(--surface2);
@@ -632,7 +590,12 @@
             color: var(--text);
             line-height: 1.7;
         }
-        .modal-reveal .word { color: var(--text-bright); font-weight: 700; font-size: 0.9rem; letter-spacing: 0.05em; }
+        .modal-reveal .word {
+            color: var(--text-bright);
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+        }
         .modal-scores {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -652,6 +615,15 @@
             color: var(--text-bright);
         }
         .modal-score-name { font-size: 0.72rem; color: var(--text); margin-top: 2px; }
+
+        /* ─── Waiting label under modal buttons ─ */
+        .modal-waiting {
+            display: none;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text);
+            margin-top: 10px;
+        }
 
         /* ─── Reconnect Banner ───────────────── */
         .reconnect-banner {
@@ -677,8 +649,8 @@
             gap: 10px;
             margin: 14px 0;
         }
-        .divider-line { flex: 1; height: 1px; background: var(--border); }
-        .divider-text {
+        .divider-line  { flex: 1; height: 1px; background: var(--border); }
+        .divider-text  {
             font-family: 'Space Mono', monospace;
             font-size: 0.58rem;
             color: var(--text);
@@ -704,18 +676,30 @@
         }
         .setup-locked-text span { color: var(--green); }
 
-        /* ─── Roles Labels ───────────────────── */
-        .role-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
+        /* ─── Status Bar ─────────────────────── */
+        .status-bar {
+            border-top: 1px solid var(--border);
+            padding: 11px 26px;
             font-family: 'Space Mono', monospace;
-            font-size: 0.6rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
+            font-size: 0.65rem;
+            color: var(--text);
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .role-badge.setter { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(124,92,252,0.3); }
-        .role-badge.guesser { background: var(--green-dim); color: var(--green); border: 1px solid rgba(76,255,159,0.3); }
+        .status-dot {
+            width: 6px; height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px var(--accent);
+            animation: pulse 2s infinite;
+        }
+        .status-dot.ok    { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+        .status-dot.warn  { background: var(--gold);  box-shadow: 0 0 6px var(--gold-glow);  }
+        .status-dot.error { background: var(--red);   box-shadow: 0 0 6px var(--red-glow);   }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
@@ -770,7 +754,10 @@
 
         <!-- ── SETUP (Word Setter) ───────────────── -->
         <div id="panel-setup" class="panel">
-            <div class="panel-title">Set The Word <span id="roundCounter" style="margin-left:auto;font-size:0.7rem;color:var(--text-mid);letter-spacing:0.05em;font-family:'Space Mono',monospace;"></span></div>
+            <div class="panel-title">
+                Set The Word
+                <span id="roundCounter" style="margin-left:auto;font-size:0.7rem;color:var(--text-mid);letter-spacing:0.05em;font-family:'Space Mono',monospace;"></span>
+            </div>
 
             <div class="players-row">
                 <div class="player-chip" id="setupP1Chip">
@@ -844,14 +831,14 @@
                 <svg class="hangman-svg" width="200" height="200" viewBox="0 0 200 200">
                     <!-- Scaffold (always visible) -->
                     <line class="hm-scaffold" x1="20" y1="190" x2="100" y2="190"/>
-                    <line class="hm-scaffold" x1="60" y1="190" x2="60" y2="20"/>
+                    <line class="hm-scaffold" x1="60" y1="190" x2="60"  y2="20"/>
                     <line class="hm-scaffold" x1="60" y1="20"  x2="130" y2="20"/>
                     <line class="hm-scaffold" x1="130" y1="20" x2="130" y2="40"/>
                     <!-- Body parts (revealed on wrong guesses) -->
-                    <circle class="hm-part" id="hm-head" cx="130" cy="55" r="15"/>
-                    <line   class="hm-part" id="hm-body" x1="130" y1="70" x2="130" y2="115"/>
-                    <line   class="hm-part" id="hm-arm-l" x1="130" y1="80" x2="105" y2="100"/>
-                    <line   class="hm-part" id="hm-arm-r" x1="130" y1="80" x2="155" y2="100"/>
+                    <circle class="hm-part" id="hm-head"  cx="130" cy="55"  r="15"/>
+                    <line   class="hm-part" id="hm-body"  x1="130" y1="70"  x2="130" y2="115"/>
+                    <line   class="hm-part" id="hm-arm-l" x1="130" y1="80"  x2="105" y2="100"/>
+                    <line   class="hm-part" id="hm-arm-r" x1="130" y1="80"  x2="155" y2="100"/>
                     <line   class="hm-part" id="hm-leg-l" x1="130" y1="115" x2="108" y2="145"/>
                     <line   class="hm-part" id="hm-leg-r" x1="130" y1="115" x2="152" y2="145"/>
                 </svg>
@@ -879,12 +866,17 @@
             <!-- Turn Banner -->
             <div class="turn-banner their-turn" id="turnBanner">Waiting…</div>
 
-            <!-- Keyboard -->
+            <!-- Physical keyboard hint (only shown when it's your turn) -->
+            <div class="keyboard-hint" id="keyboardHint" style="display:none;">
+                Press <kbd>A</kbd>–<kbd>Z</kbd> on your keyboard to guess
+            </div>
+
+            <!-- On-screen Keyboard -->
             <div class="keyboard" id="keyboard"></div>
         </div>
 
         <div class="status-bar">
-            <div class="status-dot"></div>
+            <div class="status-dot" id="statusDot"></div>
             <span id="statusBar">Connecting…</span>
         </div>
     </div>
@@ -892,12 +884,15 @@
     <!-- ── ROUND END MODAL ─────────────────────── -->
     <div class="modal-overlay" id="resultModal">
         <div class="modal-box" id="modalBox">
-            <div class="modal-icon" id="modalIcon">🏆</div>
+            <div class="modal-icon"   id="modalIcon">🏆</div>
             <div class="modal-result" id="modalResult">You Win!</div>
-            <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--text);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;" id="modalRoundLabel">Round 1 of 6</div>
+            <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--text);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;"
+                 id="modalRoundLabel">Round 1 of 6</div>
+
             <div class="modal-reveal" id="modalReveal">
                 The word was <span class="word" id="modalWord">—</span>
             </div>
+
             <div class="modal-scores" id="modalScores">
                 <div class="modal-score-card" id="mScore1">
                     <div class="modal-score-num" id="mScoreNum1">0</div>
@@ -908,9 +903,14 @@
                     <div class="modal-score-name" id="mScoreName2">P2</div>
                 </div>
             </div>
-            <button class="btn btn-gold btn-full" id="nextRoundBtn" onclick="nextRound()">Next Round ➜</button>
-            <div id="nextRoundWaiting" style="display:none;font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--text);margin-top:10px;">⏳ Waiting for opponent… <span id="nextRoundCount"></span></div>
+
+            <!-- Next Round (mid-game) -->
+            <button class="btn btn-gold btn-full"    id="nextRoundBtn"     onclick="nextRound()">Next Round ➜</button>
+            <div class="modal-waiting"               id="nextRoundWaiting">⏳ Waiting for opponent… <span id="nextRoundCount"></span></div>
+
+            <!-- Play Again (game over) — now requires BOTH players to confirm -->
             <button class="btn btn-primary btn-full" id="playAgainBtn" style="display:none;margin-top:8px;" onclick="playAgain()">Play Again 🔄</button>
+            <div class="modal-waiting"               id="playAgainWaiting">⏳ Waiting for opponent… <span id="playAgainCount"></span></div>
         </div>
     </div>
 
@@ -920,46 +920,54 @@
 
     // ── Session ────────────────────────────────
     const SESSION_KEY = 'wordduel_session';
-    function saveSession(d) { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(d)); } catch(e){} }
-    function loadSession() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch(e){ return null; } }
-    function clearSession() { try { sessionStorage.removeItem(SESSION_KEY); } catch(e){} }
+    function saveSession(d)  { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(d)); } catch(e){} }
+    function loadSession()   { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch(e){ return null; } }
+    function clearSession()  { try { sessionStorage.removeItem(SESSION_KEY); } catch(e){} }
 
     // ── State ──────────────────────────────────
-    let myName = null;
-    let currentRoomId = null;
-    let iAmSetter = false;
-    let isMyTurn = false;
-    let graceCountdownInterval = null;
-    let scores = { p1: 0, p2: 0 };
-    let p1Name = '—', p2Name = '—';
-    let lastWord = '';
+    let myName         = null;
+    let currentRoomId  = null;
+    let iAmSetter      = false;
+    let isMyTurn       = false;
+    let graceInterval  = null;
+    let scores         = { p1: 0, p2: 0 };
+    let p1Name         = '—', p2Name = '—';
 
-    // Hangman parts in order
     const HM_PARTS = ['hm-head','hm-body','hm-arm-l','hm-arm-r','hm-leg-l','hm-leg-r'];
 
-    // ── DOM ────────────────────────────────────
+    // ── DOM refs ───────────────────────────────
     const statusBar          = document.getElementById('statusBar');
+    const statusDot          = document.getElementById('statusDot');
     const resultModal        = document.getElementById('resultModal');
     const reconnectBanner    = document.getElementById('reconnectBanner');
     const reconnectMsg       = document.getElementById('reconnectMsg');
     const reconnectCountdown = document.getElementById('reconnectCountdown');
 
-    // ── Helpers ────────────────────────────────
+    // ── Status helpers ─────────────────────────
+    function setStatus(msg, type = 'idle') {
+        statusBar.textContent = msg;
+        statusDot.className = 'status-dot' + (type !== 'idle' ? ` ${type}` : '');
+    }
+
+    // ── Panel switching ────────────────────────
     function switchPanel(name) {
         ['lobby','setup','game'].forEach(n => {
             document.getElementById(`panel-${n}`).classList.toggle('active', n === name);
         });
+        // Show/hide physical keyboard hint based on panel
+        if (name !== 'game') document.getElementById('keyboardHint').style.display = 'none';
     }
 
+    // ── Keyboard ──────────────────────────────
     function buildKeyboard() {
         const kb = document.getElementById('keyboard');
         kb.innerHTML = '';
         'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
             const btn = document.createElement('button');
-            btn.className = 'key-btn';
-            btn.id = `key-${letter}`;
+            btn.className  = 'key-btn';
+            btn.id         = `key-${letter}`;
             btn.textContent = letter;
-            btn.onclick = () => guessLetter(letter);
+            btn.onclick    = () => guessLetter(letter);
             kb.appendChild(btn);
         });
     }
@@ -972,16 +980,48 @@
     }
 
     function setKeyboardEnabled(enabled) {
+        isMyTurn = enabled;
         'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l => {
             const btn = document.getElementById(`key-${l}`);
             if (btn && !btn.classList.contains('correct') && !btn.classList.contains('wrong')) {
                 btn.disabled = !enabled;
             }
         });
+        const hint = document.getElementById('keyboardHint');
+        hint.style.display = (enabled && !iAmSetter) ? 'block' : 'none';
     }
 
+    // Restore keyboard state from server-supplied guessed letters list
+    function restoreKeyboard(guessedLetters, word) {
+        if (!guessedLetters) return;
+        guessedLetters.forEach(l => {
+            const btn = document.getElementById(`key-${l}`);
+            if (!btn) return;
+            const correct = word ? word.includes(l) : false;
+            btn.className = `key-btn ${correct ? 'correct' : 'wrong'}`;
+            btn.disabled = true;
+        });
+    }
+
+    // ── Physical keyboard support ──────────────
+    document.addEventListener('keydown', (e) => {
+        if (!isMyTurn || iAmSetter) return;
+        if (resultModal.classList.contains('open')) return;
+        const letter = e.key.toUpperCase();
+        if (!/^[A-Z]$/.test(letter)) return;
+        e.preventDefault();
+
+        const btn = document.getElementById(`key-${letter}`);
+        if (!btn || btn.disabled || btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
+
+        // Visual flash on the key
+        btn.classList.add('key-active');
+        setTimeout(() => btn.classList.remove('key-active'), 120);
+        guessLetter(letter);
+    });
+
+    // ── Render helpers ─────────────────────────
     function renderWordDisplay(pattern) {
-        // pattern: array of chars, '_' for hidden
         const wd = document.getElementById('wordDisplay');
         wd.innerHTML = '';
         pattern.forEach(char => {
@@ -1002,7 +1042,7 @@
         HM_PARTS.forEach((id, i) => {
             const el = document.getElementById(id);
             if (i < wrongCount) el.classList.add('visible');
-            else el.classList.remove('visible');
+            else                el.classList.remove('visible');
         });
     }
 
@@ -1016,10 +1056,21 @@
     function updateStats(wrong, correct) {
         const lives = 6 - wrong;
         document.getElementById('wrongCount').textContent = wrong;
-        document.getElementById('livesLeft').textContent = lives;
+        document.getElementById('livesLeft').textContent  = lives;
         document.getElementById('correctCount').textContent = correct;
         const lv = document.getElementById('livesLeft');
         lv.className = 'stat-val' + (lives <= 2 ? ' danger' : lives >= 5 ? ' safe' : '');
+    }
+
+    function updatePlayerChips(setter, guesser) {
+        document.getElementById('setupP1Name').textContent = p1Name;
+        document.getElementById('setupP2Name').textContent = p2Name;
+        document.getElementById('setupP1Role').textContent = setter === p1Name ? 'Setter' : 'Guesser';
+        document.getElementById('setupP2Role').textContent = setter === p2Name ? 'Setter' : 'Guesser';
+        document.getElementById('gameP1Name').textContent  = p1Name;
+        document.getElementById('gameP2Name').textContent  = p2Name;
+        document.getElementById('gameP1Role').textContent  = setter === p1Name ? 'Setter' : 'Guesser';
+        document.getElementById('gameP2Role').textContent  = setter === p2Name ? 'Setter' : 'Guesser';
     }
 
     function showReconnectBanner(msg, sec) {
@@ -1027,10 +1078,10 @@
         reconnectBanner.classList.add('visible');
         let t = sec;
         reconnectCountdown.textContent = `${t}s remaining`;
-        clearInterval(graceCountdownInterval);
-        graceCountdownInterval = setInterval(() => {
+        clearInterval(graceInterval);
+        graceInterval = setInterval(() => {
             t--;
-            if (t <= 0) { clearInterval(graceCountdownInterval); reconnectCountdown.textContent = 'Grace expired.'; }
+            if (t <= 0) { clearInterval(graceInterval); reconnectCountdown.textContent = 'Grace period expired.'; }
             else reconnectCountdown.textContent = `${t}s remaining`;
         }, 1000);
     }
@@ -1038,74 +1089,85 @@
     function hideReconnectBanner() {
         reconnectBanner.classList.remove('visible');
         reconnectCountdown.textContent = '';
-        clearInterval(graceCountdownInterval);
+        clearInterval(graceInterval);
     }
 
-    function updatePlayerChips(setter, guesser) {
-        // Setup panel
-        document.getElementById('setupP1Name').textContent = p1Name;
-        document.getElementById('setupP2Name').textContent = p2Name;
-        document.getElementById('setupP1Role').textContent = setter === p1Name ? 'Setter' : 'Guesser';
-        document.getElementById('setupP2Role').textContent = setter === p2Name ? 'Setter' : 'Guesser';
-        // Game panel
-        document.getElementById('gameP1Name').textContent = p1Name;
-        document.getElementById('gameP2Name').textContent = p2Name;
-        document.getElementById('gameP1Role').textContent = setter === p1Name ? 'Setter' : 'Guesser';
-        document.getElementById('gameP2Role').textContent = setter === p2Name ? 'Setter' : 'Guesser';
+    // ── Reset modal button states ──────────────
+    function resetNextRoundBtn() {
+        const btn = document.getElementById('nextRoundBtn');
+        btn.disabled = false;
+        btn.textContent = 'Next Round ➜';
+        btn.style.display = 'block';
+        const waiting = document.getElementById('nextRoundWaiting');
+        waiting.style.display = 'none';
+        document.getElementById('nextRoundCount').textContent = '';
+    }
+
+    function resetPlayAgainBtn() {
+        const btn = document.getElementById('playAgainBtn');
+        btn.disabled = false;
+        btn.textContent = 'Play Again 🔄';
+        btn.style.display = 'none';
+        const waiting = document.getElementById('playAgainWaiting');
+        waiting.style.display = 'none';
+        document.getElementById('playAgainCount').textContent = '';
     }
 
     // ── Socket Events ──────────────────────────
     socket.on('connect', () => {
         const session = loadSession();
         if (session?.roomId && session?.playerName) {
-            statusBar.textContent = 'Reconnecting…';
+            setStatus('Reconnecting…', 'warn');
             socket.emit('rejoinRoom', { roomId: session.roomId, playerName: session.playerName });
         } else {
-            statusBar.textContent = 'Connected. Ready to play.';
+            setStatus('Connected. Ready to play.', 'ok');
         }
     });
 
-    socket.on('updateStatus', msg => { statusBar.textContent = msg; });
+    socket.on('disconnect', () => {
+        setStatus('Connection lost. Trying to reconnect…', 'error');
+        isMyTurn = false;
+        document.getElementById('keyboardHint').style.display = 'none';
+    });
+
+    socket.on('updateStatus', msg => setStatus(msg, 'ok'));
 
     socket.on('roomCreated', ({ roomId }) => {
         currentRoomId = roomId;
         myName = document.getElementById('playerName').value.trim();
-        // FIX #2: Save session for creator too (was missing, causing creator to lose session on refresh)
+        // FIX: save session for room creator (was missing in original)
         saveSession({ roomId, playerName: myName });
         document.getElementById('roomBadgeId').textContent = roomId;
         document.getElementById('roomBadgeWrap').style.display = 'block';
         document.getElementById('playerName').disabled = true;
+        setStatus(`Room ${roomId} created. Share the ID with your opponent.`, 'ok');
     });
 
     socket.on('playersInfo', ({ player1, player2 }) => {
-        p1Name = player1; p2Name = player2;
+        p1Name = player1;
+        p2Name = player2;
+        // Re-render chips with latest names
+        updatePlayerChips(p1Name, p2Name);
     });
 
     socket.on('setupRound', ({ setter, guesser, round, roundNumber, maxRounds }) => {
-        // Close modal and reset Next Round button state
         resultModal.classList.remove('open');
-        const nrBtn = document.getElementById('nextRoundBtn');
-        nrBtn.disabled = false;
-        nrBtn.textContent = 'Next Round ➜';
-        nrBtn.style.display = 'block';
-        document.getElementById('nextRoundWaiting').style.display = 'none';
-        document.getElementById('nextRoundCount').textContent = '';
+        resetNextRoundBtn();
+        resetPlayAgainBtn();
 
         iAmSetter = (setter === myName);
         updatePlayerChips(setter, guesser);
 
-        // Update round counter badge
-        const completedRounds = roundNumber ?? (round - 1);
-        const total = maxRounds ?? 6;
-        const upcoming = completedRounds + 1;
+        const upcoming = (roundNumber ?? (round - 1)) + 1;
+        const total    = maxRounds ?? 6;
         document.getElementById('roundCounter').textContent = `Round ${upcoming} / ${total}`;
 
-        document.getElementById('isSetterUI').style.display = iAmSetter ? 'block' : 'none';
-        document.getElementById('isGuesserUI').style.display = iAmSetter ? 'none' : 'block';
-        document.getElementById('wordInput').value = '';
+        document.getElementById('isSetterUI').style.display  = iAmSetter ? 'block' : 'none';
+        document.getElementById('isGuesserUI').style.display = iAmSetter ? 'none'  : 'block';
+        document.getElementById('wordInput').value    = '';
         document.getElementById('categoryInput').value = '';
         document.getElementById('wordCharCount').textContent = '0 / 14';
-        document.getElementById('wordError').textContent = '';
+        document.getElementById('wordError').textContent     = '';
 
         switchPanel('setup');
     });
@@ -1132,131 +1194,132 @@
 
     socket.on('turnUpdate', ({ guesserSocketId }) => {
         const myTurn = socket.id === guesserSocketId;
-        isMyTurn = myTurn && !iAmSetter;
-        setKeyboardEnabled(isMyTurn);
+        setKeyboardEnabled(myTurn && !iAmSetter);
 
         const tb = document.getElementById('turnBanner');
         if (iAmSetter) {
             tb.textContent = '👁 You set the word — Watch them guess!';
-            tb.className = 'turn-banner their-turn';
-        } else if (isMyTurn) {
+            tb.className   = 'turn-banner their-turn';
+        } else if (myTurn) {
             tb.textContent = '🔥 Your Turn — Pick a letter!';
-            tb.className = 'turn-banner my-turn';
+            tb.className   = 'turn-banner my-turn';
         } else {
             tb.textContent = '⏳ Opponent\'s turn…';
-            tb.className = 'turn-banner their-turn';
+            tb.className   = 'turn-banner their-turn';
         }
     });
 
-    socket.on('letterResult', ({ letter, correct, pattern, wrongCount, correctCount, flashPart }) => {
+    socket.on('letterResult', ({ letter, correct, pattern, wrongCount, correctCount, flashPart, guessedLetters }) => {
+        // If letter is null this is a reconnect sync — restore keyboard from guessedLetters list
+        if (letter === null) {
+            if (guessedLetters) restoreKeyboard(guessedLetters, null); // word unknown client-side for setter
+            renderWordDisplay(pattern);
+            updateHangman(wrongCount);
+            updateStats(wrongCount, correctCount);
+            return;
+        }
         const btn = document.getElementById(`key-${letter}`);
-        if (btn) { btn.className = `key-btn ${correct ? 'correct' : 'wrong'}`; btn.disabled = true; }
+        if (btn) {
+            btn.className = `key-btn ${correct ? 'correct' : 'wrong'}`;
+            btn.disabled  = true;
+        }
         renderWordDisplay(pattern);
         updateHangman(wrongCount);
         if (!correct && flashPart) flashLastHangmanPart(wrongCount);
         updateStats(wrongCount, correctCount);
     });
 
-    socket.on('roundOver', ({ winner, word, outcome, newScores, setterName, roundNumber, maxRounds, isLastRound }) => {
-        lastWord = word;
+    socket.on('roundOver', ({ winner, word, outcome, newScores, roundNumber, maxRounds, isLastRound }) => {
         scores = newScores;
 
-        const modalBox = document.getElementById('modalBox');
+        const modalBox    = document.getElementById('modalBox');
         const modalResult = document.getElementById('modalResult');
-        const modalIcon = document.getElementById('modalIcon');
+        const modalIcon   = document.getElementById('modalIcon');
 
         let resultClass, resultText, iconText;
-
         if (outcome === 'guesser_wins') {
-            if (!iAmSetter) { resultClass = 'win'; resultText = 'You Cracked It!'; iconText = '🏆'; }
-            else { resultClass = 'lose'; resultText = `${winner} Wins!`; iconText = '💀'; }
+            if (!iAmSetter) { resultClass = 'win';  resultText = 'You Cracked It!'; iconText = '🏆'; }
+            else            { resultClass = 'lose'; resultText = `${winner} Wins!`; iconText = '💀'; }
         } else if (outcome === 'setter_wins') {
-            if (iAmSetter) { resultClass = 'win'; resultText = 'Word Survived!'; iconText = '🎭'; }
-            else { resultClass = 'lose'; resultText = 'Hanged…'; iconText = '☠️'; }
+            if (iAmSetter)  { resultClass = 'win';  resultText = 'Word Survived!'; iconText = '🎭'; }
+            else            { resultClass = 'lose'; resultText = 'Hanged…';        iconText = '☠️'; }
         } else {
             resultClass = 'draw'; resultText = 'Draw!'; iconText = '🤝';
         }
 
-        modalBox.className = `modal-box ${resultClass}`;
+        modalBox.className    = `modal-box ${resultClass}`;
         modalResult.className = `modal-result ${resultClass}`;
         modalResult.textContent = resultText;
-        modalIcon.textContent = iconText;
+        modalIcon.textContent   = iconText;
 
-        document.getElementById('modalWord').textContent = word;
-        document.getElementById('modalReveal').style.display = '';  // restore if hidden by gameOver
-
-        // Show round progress in modal
-        const rn = roundNumber ?? 1;
-        const mr = maxRounds ?? 6;
-        document.getElementById('modalRoundLabel').textContent = `Round ${rn} of ${mr}`;
-
-        document.getElementById('mScoreName1').textContent = p1Name;
-        document.getElementById('mScoreName2').textContent = p2Name;
-        document.getElementById('mScoreNum1').textContent = scores.p1;
-        document.getElementById('mScoreNum2').textContent = scores.p2;
+        document.getElementById('modalWord').textContent        = word;
+        document.getElementById('modalReveal').style.display    = '';
+        document.getElementById('modalRoundLabel').textContent  = `Round ${roundNumber ?? 1} of ${maxRounds ?? 6}`;
+        document.getElementById('mScoreName1').textContent      = p1Name;
+        document.getElementById('mScoreName2').textContent      = p2Name;
+        document.getElementById('mScoreNum1').textContent       = scores.p1;
+        document.getElementById('mScoreNum2').textContent       = scores.p2;
 
         const lead1 = scores.p1 > scores.p2;
         const lead2 = scores.p2 > scores.p1;
         document.getElementById('mScore1').className = 'modal-score-card' + (lead1 ? ' leading' : '');
         document.getElementById('mScore2').className = 'modal-score-card' + (lead2 ? ' leading' : '');
 
-        // Show/hide Next Round button
-        const nextBtn = document.getElementById('nextRoundBtn');
-        nextBtn.style.display = isLastRound ? 'none' : 'block';
+        document.getElementById('nextRoundBtn').style.display = isLastRound ? 'none' : 'block';
 
-        // Reveal full word (show all letters)
-        const fullPattern = word.split('');
-        renderWordDisplay(fullPattern);
+        // Reveal full word on board
+        renderWordDisplay(word.split(''));
         setKeyboardEnabled(false);
         resultModal.classList.add('open');
     });
 
     socket.on('gameOver', ({ gameWinner, scores: finalScores, p1Name: gp1, p2Name: gp2 }) => {
-        // Switch modal to game-over state
-        const modalBox = document.getElementById('modalBox');
+        const modalBox    = document.getElementById('modalBox');
         const modalResult = document.getElementById('modalResult');
-        const modalIcon = document.getElementById('modalIcon');
+        const modalIcon   = document.getElementById('modalIcon');
 
         const isWinner = gameWinner === myName;
-        const isDraw = !gameWinner;
+        const isDraw   = !gameWinner;
 
         if (isDraw) {
-            modalBox.className = 'modal-box draw';
+            modalBox.className    = 'modal-box draw';
             modalResult.className = 'modal-result draw';
             modalResult.textContent = "It's a Draw!";
-            modalIcon.textContent = '🤝';
+            modalIcon.textContent   = '🤝';
         } else if (isWinner) {
-            modalBox.className = 'modal-box win';
+            modalBox.className    = 'modal-box win';
             modalResult.className = 'modal-result win';
             modalResult.textContent = 'You Win the Match!';
-            modalIcon.textContent = '🏆';
+            modalIcon.textContent   = '🏆';
         } else {
-            modalBox.className = 'modal-box lose';
+            modalBox.className    = 'modal-box lose';
             modalResult.className = 'modal-result lose';
             modalResult.textContent = `${gameWinner} Wins the Match!`;
-            modalIcon.textContent = '☠️';
+            modalIcon.textContent   = '☠️';
         }
 
         document.getElementById('modalRoundLabel').textContent = 'Game Over — Final Score';
-        document.getElementById('modalReveal').style.display = 'none';
-
-        document.getElementById('mScoreName1').textContent = gp1;
-        document.getElementById('mScoreName2').textContent = gp2;
-        document.getElementById('mScoreNum1').textContent = finalScores.p1;
-        document.getElementById('mScoreNum2').textContent = finalScores.p2;
+        document.getElementById('modalReveal').style.display   = 'none';
+        document.getElementById('mScoreName1').textContent     = gp1;
+        document.getElementById('mScoreName2').textContent     = gp2;
+        document.getElementById('mScoreNum1').textContent      = finalScores.p1;
+        document.getElementById('mScoreNum2').textContent      = finalScores.p2;
 
         const lead1 = finalScores.p1 > finalScores.p2;
         const lead2 = finalScores.p2 > finalScores.p1;
         document.getElementById('mScore1').className = 'modal-score-card' + (lead1 ? ' leading' : '');
         document.getElementById('mScore2').className = 'modal-score-card' + (lead2 ? ' leading' : '');
 
-        document.getElementById('nextRoundBtn').style.display = 'none';
-        document.getElementById('playAgainBtn').style.display = 'block';
+        document.getElementById('nextRoundBtn').style.display  = 'none';
+        document.getElementById('playAgainBtn').style.display  = 'block';
+        resetPlayAgainBtn();
+        document.getElementById('playAgainBtn').style.display  = 'block'; // keep visible after reset
     });
 
     socket.on('playerDisconnected', ({ playerName, graceSeconds }) => {
         showReconnectBanner(`⚠️ ${playerName} disconnected…`, graceSeconds);
         setKeyboardEnabled(false);
+        setStatus(`⚠️ ${playerName} disconnected. Waiting ${graceSeconds}s…`, 'warn');
     });
 
     socket.on('clearBoard', () => {
@@ -1266,77 +1329,95 @@
     });
 
     socket.on('gameStateUpdate', ({ state, reason } = {}) => {
-        // Handle legacy string format gracefully
-        if (typeof state === 'undefined' && typeof arguments[0] === 'string') {
-            state = arguments[0]; reason = 'disconnect';
-        }
         if (state === 'waiting') {
             resultModal.classList.remove('open');
-            iAmSetter = false;
-            isMyTurn = false;
-            scores = { p1: 0, p2: 0 };
+            iAmSetter  = false;
+            isMyTurn   = false;
+            scores     = { p1: 0, p2: 0 };
             document.getElementById('playerName').disabled = false;
+            document.getElementById('keyboardHint').style.display = 'none';
 
             if (reason === 'play_again') {
-                // Same room, same players — just go back to lobby keeping room badge
+                // Keep room badge for the same room
                 if (currentRoomId) {
                     document.getElementById('roomBadgeId').textContent = currentRoomId;
                     document.getElementById('roomBadgeWrap').style.display = 'block';
                 }
+                setStatus('New match! Waiting for both players to ready up…', 'ok');
                 switchPanel('lobby');
             } else {
-                // Opponent permanently disconnected — clear session, hide badge
                 clearSession();
                 currentRoomId = null;
                 p1Name = '—'; p2Name = '—';
                 document.getElementById('roomBadgeWrap').style.display = 'none';
+                setStatus('Opponent left. Waiting for new player…', 'warn');
                 switchPanel('lobby');
             }
         }
     });
 
     socket.on('rejoinSuccess', ({ gameState, player1, player2, isSetter }) => {
-        statusBar.textContent = 'Reconnected!';
-        hideReconnectBanner();
-        // Restore myName from session in case it was lost
         const session = loadSession();
         if (session?.playerName && !myName) myName = session.playerName;
-        p1Name = player1 || p1Name;
-        p2Name = player2 || p2Name;
+        if (player1) p1Name = player1;
+        if (player2) p2Name = player2;
         iAmSetter = isSetter;
+        setStatus('Reconnected!', 'ok');
+        hideReconnectBanner();
+
         if (gameState === 'waiting')    switchPanel('lobby');
         if (gameState === 'setup')      switchPanel('setup');
         if (gameState === 'playing')    { switchPanel('game'); buildKeyboard(); }
-        if (gameState === 'round_over') { /* modal will re-open via roundOver re-emit if needed */ }
-        if (gameState === 'game_over')  { switchPanel('game'); /* game over modal stays open */ }
     });
 
-    socket.on('errorMsg', msg => { statusBar.textContent = `⚠ ${msg}`; });
+    // FIX: Next Round ready count — properly shows your own status
+    socket.on('nextRoundReadyCount', ({ count, total, youReady }) => {
+        document.getElementById('nextRoundCount').textContent = `(${count}/${total})`;
+        if (youReady) {
+            const btn = document.getElementById('nextRoundBtn');
+            btn.disabled    = true;
+            btn.textContent = '✓ Ready!';
+            document.getElementById('nextRoundWaiting').style.display = 'block';
+        }
+    });
+
+    // FIX: Play Again now requires both to confirm — mirrors nextRound UX exactly
+    socket.on('playAgainReadyCount', ({ count, total, youReady }) => {
+        document.getElementById('playAgainCount').textContent = `(${count}/${total})`;
+        if (youReady) {
+            const btn = document.getElementById('playAgainBtn');
+            btn.disabled    = true;
+            btn.textContent = '✓ Ready!';
+            document.getElementById('playAgainWaiting').style.display = 'block';
+        }
+    });
+
+    socket.on('errorMsg', msg => setStatus(`⚠ ${msg}`, 'error'));
 
     // ── Actions ────────────────────────────────
     function createRoom() {
         const name = document.getElementById('playerName').value.trim();
-        if (!name) { statusBar.textContent = '⚠ Enter your alias first.'; return; }
+        if (!name) { setStatus('⚠ Enter your alias first.', 'error'); return; }
         myName = name;
         socket.emit('createRoom', name);
     }
 
     function joinRoom() {
-        const name = document.getElementById('playerName').value.trim();
+        const name   = document.getElementById('playerName').value.trim();
         const roomId = document.getElementById('roomIdInput').value.trim().toUpperCase();
-        if (!name) { statusBar.textContent = '⚠ Enter your alias first.'; return; }
-        if (!roomId || roomId.length !== 6) { statusBar.textContent = '⚠ Enter a valid 6-character Room ID.'; return; }
-        myName = name;
+        if (!name)               { setStatus('⚠ Enter your alias first.', 'error'); return; }
+        if (!roomId || roomId.length !== 6) { setStatus('⚠ Enter a valid 6-character Room ID.', 'error'); return; }
+        myName        = name;
         currentRoomId = roomId;
         saveSession({ roomId, playerName: name });
         socket.emit('joinRoom', { name, roomId });
     }
 
     function setWord() {
-        const word = document.getElementById('wordInput').value.trim().toUpperCase();
+        const word     = document.getElementById('wordInput').value.trim().toUpperCase();
         const category = document.getElementById('categoryInput').value.trim();
-        const errEl = document.getElementById('wordError');
-        const inp = document.getElementById('wordInput');
+        const errEl    = document.getElementById('wordError');
+        const inp      = document.getElementById('wordInput');
 
         if (!word || !/^[A-Z]{3,14}$/.test(word)) {
             errEl.textContent = 'Letters only, 3–14 characters.';
@@ -1350,42 +1431,35 @@
         document.getElementById('isSetterUI').innerHTML = `
             <div class="setup-locked">
                 <div class="setup-locked-icon">🔒</div>
-                <div class="setup-locked-text">Word locked! <span>${word.length} letters</span><br>Waiting for opponent to start guessing…</div>
+                <div class="setup-locked-text">
+                    Word locked! <span>${word.length} letters</span><br>
+                    Waiting for opponent to start guessing…
+                </div>
             </div>`;
     }
 
     function guessLetter(letter) {
-        if (!isMyTurn) return;
+        if (!isMyTurn || iAmSetter) return;
         socket.emit('guessLetter', letter);
     }
 
     function nextRound() {
         const btn = document.getElementById('nextRoundBtn');
-        btn.disabled = true;
+        btn.disabled    = true;
         btn.textContent = '✓ Ready!';
-        document.getElementById('nextRoundWaiting').style.display = 'block';
+        document.getElementById('nextRoundWaiting').style.display  = 'block';
         document.getElementById('nextRoundCount').textContent = '(1/2)';
         socket.emit('nextRound');
     }
 
-    socket.on('nextRoundReadyCount', ({ count, total, youReady }) => {
-        const btn = document.getElementById('nextRoundBtn');
-        const waiting = document.getElementById('nextRoundWaiting');
-        document.getElementById('nextRoundCount').textContent = `(${count}/${total})`;
-        if (youReady) {
-            btn.disabled = true;
-            btn.textContent = '✓ Ready!';
-            waiting.style.display = 'block';
-        }
-        // When both ready, server emits setupRound which closes modal & resets button
-    });
-
+    // FIX: Play Again now emits 'playAgain' (new event) instead of legacy 'resetGame'
     function playAgain() {
-        socket.emit('resetGame');
-        // clearBoard + gameStateUpdate will come from server, triggering lobby reset
-        // Also clean up the Play Again button immediately
-        document.getElementById('playAgainBtn').style.display = 'none';
-        document.getElementById('nextRoundBtn').style.display = 'block';
+        const btn = document.getElementById('playAgainBtn');
+        btn.disabled    = true;
+        btn.textContent = '✓ Ready!';
+        document.getElementById('playAgainWaiting').style.display  = 'block';
+        document.getElementById('playAgainCount').textContent = '(1/2)';
+        socket.emit('playAgain');
     }
 
     function copyRoomId() {
@@ -1396,18 +1470,20 @@
         });
     }
 
-    // ── Word input char counter ────────────────
+    // ── Input helpers ──────────────────────────
     document.getElementById('wordInput').addEventListener('input', function() {
-        this.value = this.value.toUpperCase().replace(/[^A-Z]/g,'');
+        this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
         document.getElementById('wordCharCount').textContent = `${this.value.length} / 14`;
     });
-
     document.getElementById('roomIdInput').addEventListener('input', function() {
         this.value = this.value.toUpperCase();
     });
 
-    document.getElementById('roomIdInput').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
-    document.getElementById('playerName').addEventListener('keydown', e => { if (e.key === 'Enter') createRoom(); });
+    // Enter key shortcuts
+    document.getElementById('roomIdInput').addEventListener('keydown',  e => { if (e.key === 'Enter') joinRoom(); });
+    document.getElementById('playerName').addEventListener('keydown',   e => { if (e.key === 'Enter') createRoom(); });
+    document.getElementById('wordInput').addEventListener('keydown',    e => { if (e.key === 'Enter') setWord(); });
+    document.getElementById('categoryInput').addEventListener('keydown',e => { if (e.key === 'Enter') setWord(); });
     </script>
 </body>
 </html>
